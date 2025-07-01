@@ -1,12 +1,21 @@
-# Linux 一键安装 mihomo (新版clash、Clash Meta） 支持订阅
+# Mihomo Linux 一键安装脚本 v2.0.0
 
-Linux 一键安装 mihomo (新版clash、Clash Meta）
+🚀 **重构版本** - 支持多架构、智能下载、完善的错误处理
 
-一键安装Clash
+## ✨ v2.0.0 新特性
 
-一键安装Clash Meta
+相比 v1.0.0 版本的重大改进：
 
-一键安装mihomo
+### 🔧 技术重构
+- **多架构支持**: 自动检测 x86_64、ARM64、ARMv7 架构
+- **智能下载**: 多镜像源自动选择，提高下载成功率
+- **错误处理**: 完善的错误处理和用户提示
+- **系统兼容**: 支持更多 Linux 发行版
+
+### 📦 安装方式升级
+- **在线安装**: 自动下载最新版本
+- **离线安装**: 支持本地文件安装
+- **重试机制**: 下载失败自动重试
 
 clash-verge/Clash Meta 等linux 使用的都是mihomo 内核 我这里使用的是[mihomo](https://github.com/MetaCubeX/mihomo/releases) +[metacubexd](https://github.com/MetaCubeX/metacubexd/releases)
 
