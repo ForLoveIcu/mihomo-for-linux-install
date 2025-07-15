@@ -1,0 +1,65 @@
+name: 自动更新二进制文件
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天凌晨2点执行
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  update-binaries:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 检查新版本
+      id: check
+      run: |
+        # 获取最新版本
+        LATEST=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | jq -r .tag_name)
+        echo "latest=$LATEST" >> $GITHUB_OUTPUT
+        
+        # 检查是否需要更新
+        if [ -f VERSION ]; then
+          CURRENT=$(cat VERSION)
+          if [ "$LATEST" = "$CURRENT" ]; then
+            echo "need_update=false" >> $GITHUB_OUTPUT
+          else
+            echo "need_update=true" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "need_update=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: 下载新版本
+      if: steps.check.outputs.need_update == 'true'
+      run: |
+        VERSION=${{ steps.check.outputs.latest }}
+        mkdir -p binaries
+        
+        # 下载各架构版本
+        wget -O binaries/mihomo-linux-amd64-v1-${VERSION}.gz \
+          https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-v1-${VERSION}.gz
+        
+        wget -O binaries/mihomo-linux-arm64-${VERSION}.gz \
+          https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-arm64-${VERSION}.gz
+        
+        wget -O binaries/mihomo-linux-armv7-${VERSION}.gz \
+          https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-armv7-${VERSION}.gz
+        
+        # 下载 WebUI
+        wget -O binaries/metacubexd.tgz \
+          https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz
+        
+        # 更新版本文件
+        echo $VERSION > VERSION
+        
+    - name: 提交更新
+      if: steps.check.outputs.need_update == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "🔄 自动更新到版本 ${{ steps.check.outputs.latest }}"
+        git push
