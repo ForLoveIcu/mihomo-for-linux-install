@@ -1,0 +1,35 @@
+port: 7890
+socks-port: 7891
+allow-lan: true
+mode: rule
+log-level: info
+external-controller: 0.0.0.0:9090
+external-ui: ui
+
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  nameserver:
+    - 8.8.8.8
+    - 1.1.1.1
+
+proxies:
+  - name: "示例代理"
+    type: http
+    server: example.com
+    port: 8080
+
+proxy-groups:
+  - name: "PROXY"
+    type: select
+    proxies:
+      - "示例代理"
+      - DIRECT
+
+rules:
+  - DOMAIN-SUFFIX,local,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - MATCH,PROXY

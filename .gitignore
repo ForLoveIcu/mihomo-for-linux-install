@@ -1,0 +1,24 @@
+# 内部开发文件 - 不对外公开
+.augment-guidelines
+mihomo_enhancement_plan.md
+FINAL_CHECK_REPORT.md
+DEVELOPMENT_LOG.md
+
+# 临时文件
+*.tmp
+*.log
+*.bak
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 测试文件
+test_*.log
+debug_*.txt
