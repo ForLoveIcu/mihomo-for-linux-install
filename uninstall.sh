@@ -1,35 +1,19 @@
 #!/bin/bash
 
-# 设置变量
-MihomoDir="/etc/mihomo"
-BashrcFile="$HOME/.bashrc"
-SystemdServiceFile="/etc/systemd/system/mihomo.service"
+echo "正在卸载 mihomo..."
 
-# 停止 mihomo 服务
-echo "停止 mihomo 服务..."
-sudo systemctl stop mihomo
+# 停止服务
+systemctl stop mihomo
+systemctl disable mihomo
 
-# 禁用 mihomo 服务
-echo "禁用 mihomo 服务..."
-sudo systemctl disable mihomo
+# 删除服务文件
+rm -f /etc/systemd/system/mihomo.service
+systemctl daemon-reload
 
-# 删除 /etc/mihomo 目录及其内容
-echo "删除 /etc/mihomo 目录及其内容..."
-sudo rm -rf "$MihomoDir"
+# 删除程序目录
+rm -rf /etc/mihomo
 
-# 从 ~/.bashrc 中移除对 clash_control.sh 的引用
-echo "从 ~/.bashrc 中移除对 clash_control.sh 的引用..."
-sed -i '/source \/etc\/mihomo\/clash_control.sh/d' "$BashrcFile"
-sed -i '/source \/etc\/mihomo\/clash_control.sh/d' "/etc/bashrc"
-# 重新加载 ~/.bashrc 配置
-source "$BashrcFile"
+# 从 bashrc 中移除
+sed -i '/clash_control.sh/d' /etc/bashrc
 
-# 删除 systemd 配置文件
-echo "删除 systemd 配置文件..."
-sudo rm -f "$SystemdServiceFile"
-
-# 重新加载 systemd 配置
-echo "重新加载 systemd 配置..."
-sudo systemctl daemon-reload
-
-echo "卸载完成！"
+echo "mihomo 已完全卸载"
