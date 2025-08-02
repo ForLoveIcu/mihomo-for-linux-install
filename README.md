@@ -27,15 +27,33 @@ clash-verge/Clash Meta 等linux 使用的都是mihomo 内核 我这里使用的�
 
 已适配：CentOS 7.x Rocky linux ,Debian和Ubuntu 稍微改动一下bashrc路径即可
 
-## 开始使用
+## 🚀 快速开始
 
-一键安装
+### 在线安装 (推荐)
 
+```bash
+curl -fsSL https://raw.githubusercontent.com/ForLoveIcu/mihomo-for-linux-install/main/quick_install.sh | bash
 ```
-git clone https://githubfast.com/tianyufeng925/mihomo-for-linux-install.git && cd mihomo-for-linux-install && sudo bash -c '. install.sh; exec bash'
+
+### 离线安装
+
+```bash
+git clone https://github.com/ForLoveIcu/mihomo-for-linux-install.git
+cd mihomo-for-linux-install
+sudo bash install.sh
 ```
 
-上述脚本已使用[代理加速下载](https://githubfast.com)，如克隆失败请自行更换。
+### 🎮 便捷命令
+
+安装完成后，您可以使用以下命令：
+
+```bash
+clashon        # 启动服务
+clashoff       # 停止服务 + 清理系统代理
+clashstatus    # 查看服务状态
+clashlog       # 查看实时日志
+clashrestart   # 重启服务
+```
 
 ## 命令
 

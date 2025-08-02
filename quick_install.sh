@@ -99,6 +99,62 @@ download_file() {
     return 1
 }
 
+# 创建便捷命令
+create_convenience_commands() {
+    # clashon - 启动服务
+    cat > /usr/local/bin/clashon << 'EOF'
+#!/bin/bash
+echo "🚀 启动 Mihomo 服务..."
+if systemctl start mihomo; then
+    echo "✅ Mihomo 服务已启动"
+    echo "🌐 管理界面: http://$(hostname -I | awk '{print $1}'):9090"
+else
+    echo "❌ 启动失败，请检查日志: journalctl -u mihomo"
+fi
+EOF
+
+    # clashoff - 停止服务并清理代理
+    cat > /usr/local/bin/clashoff << 'EOF'
+#!/bin/bash
+echo "🛑 停止 Mihomo 服务..."
+if systemctl stop mihomo; then
+    echo "✅ Mihomo 服务已停止"
+    # 清理系统代理
+    unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
+    unset all_proxy ALL_PROXY no_proxy NO_PROXY
+    echo "🧹 系统代理已清理"
+else
+    echo "❌ 停止失败，请检查日志: journalctl -u mihomo"
+fi
+EOF
+
+    # clashstatus - 查看状态
+    cat > /usr/local/bin/clashstatus << 'EOF'
+#!/bin/bash
+echo "📊 Mihomo 服务状态"
+systemctl status mihomo --no-pager
+echo ""
+echo "🔌 端口监听状态"
+netstat -tlnp | grep -E ":(7890|7891|9090)" || echo "没有监听端口"
+EOF
+
+    # clashlog - 查看日志
+    cat > /usr/local/bin/clashlog << 'EOF'
+#!/bin/bash
+echo "📋 Mihomo 实时日志 (Ctrl+C 退出)"
+journalctl -u mihomo -f
+EOF
+
+    # clashrestart - 重启服务
+    cat > /usr/local/bin/clashrestart << 'EOF'
+#!/bin/bash
+echo "🔄 重启 Mihomo 服务..."
+systemctl restart mihomo && echo "✅ Mihomo 服务已重启"
+EOF
+
+    chmod +x /usr/local/bin/clash{on,off,status,log,restart}
+}
+
 # 主安装函数
 main() {
     log_info "开始安装 Mihomo..."
@@ -195,18 +251,10 @@ EOF
     systemctl enable mihomo
     systemctl start mihomo
     
-    # 创建便捷命令
-    cat > /usr/local/bin/clashon << 'EOF'
-#!/bin/bash
-systemctl start mihomo && echo "✅ Mihomo 已启动"
-EOF
-    
-    cat > /usr/local/bin/clashoff << 'EOF'
-#!/bin/bash
-systemctl stop mihomo && echo "✅ Mihomo 已停止"
-EOF
-    
-    chmod +x /usr/local/bin/clashon /usr/local/bin/clashoff
+    # 创建完整的便捷命令系统
+    create_convenience_commands
+
+    log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart"
     
     # 清理临时文件
     rm -f /tmp/mihomo.gz /tmp/ui.tgz
