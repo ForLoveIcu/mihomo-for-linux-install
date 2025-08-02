@@ -1,11 +1,27 @@
 #!/bin/bash
 
+# Mihomo Linux 安装脚本 v2.0.0 - 重构版
+# 支持多架构、智能下载、完善错误处理
+
+set -e
+
 # 设置变量
 MihomoDir="/etc/mihomo"
-DistFile1="mihomo-linux-amd64-alpha-c7661d7.gz"
-DistFile2="compressed-dist.tgz"
 ConfigFile="config.yaml"
 CountryFile="Country.mmdb"
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# 日志函数
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
 # 检查 /etc/mihomo 目录是否存在
 if [ -d "$MihomoDir" ]; then
