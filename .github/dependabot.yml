@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # GitHub Actions依赖更新
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "02:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "🔧"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "tianyufeng925"
+    
+  # 如果项目中有其他依赖文件，也可以添加
+  # 例如：package.json, requirements.txt, go.mod 等
