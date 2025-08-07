@@ -83,6 +83,7 @@ install_dependencies() {
 get_github_mirrors() {
     echo "https://ghproxy.net/"
     echo "https://github.moeyy.xyz/"
+    echo "https://github.akams.cn/"
     echo "https://hub.gitmirror.com/"
     echo "https://gitclone.com/"
     echo "https://gh-proxy.com/"
