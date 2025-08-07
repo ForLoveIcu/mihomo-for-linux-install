@@ -228,7 +228,24 @@ echo "🔄 重启 Mihomo 服务..."
 systemctl restart mihomo && echo "✅ Mihomo 服务已重启"
 EOF
 
-    chmod +x /usr/local/bin/clash{on,off,status,log,restart}
+    # clashuninstall - 完整卸载
+    cat > /usr/local/bin/clashuninstall << 'EOF'
+#!/bin/bash
+echo "🗑️  启动 Mihomo 卸载程序..."
+if [ -f "/etc/mihomo/uninstall.sh" ]; then
+    bash /etc/mihomo/uninstall.sh
+elif [ -f "$(dirname "$0")/uninstall.sh" ]; then
+    bash "$(dirname "$0")/uninstall.sh"
+elif [ -f "/usr/local/share/mihomo/uninstall.sh" ]; then
+    bash /usr/local/share/mihomo/uninstall.sh
+else
+    echo "❌ 未找到卸载脚本"
+    echo "请手动下载并运行: https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh"
+    echo "或使用命令: curl -fsSL https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh | sudo bash"
+fi
+EOF
+
+    chmod +x /usr/local/bin/clash{on,off,status,log,restart,uninstall}
 }
 
 # 主安装函数
@@ -343,8 +360,17 @@ EOF
     # 创建完整的便捷命令系统
     create_convenience_commands
 
-    log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart"
-    
+    log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart, clashuninstall"
+
+    # 下载并安装卸载脚本
+    log_info "安装卸载脚本..."
+    if curl -fsSL "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh" -o "/etc/mihomo/uninstall.sh"; then
+        chmod +x /etc/mihomo/uninstall.sh
+        log_success "卸载脚本已安装到 /etc/mihomo/uninstall.sh"
+    else
+        log_warning "卸载脚本下载失败，可以手动下载"
+    fi
+
     # 清理临时文件
     rm -f /tmp/mihomo.gz /tmp/ui.tgz
     

@@ -139,18 +139,41 @@ journalctl -u mihomo -f
 - 修改配置文件中的端口设置
 
 ### 卸载方法
-```bash
-# 如果存在卸载脚本
-./uninstall.sh
 
-# 手动卸载
-systemctl stop mihomo
-systemctl disable mihomo
-rm -rf /etc/mihomo /opt/mihomo
-rm -f /etc/systemd/system/mihomo.service
-rm -f /usr/local/bin/clash*
-systemctl daemon-reload
+**方法一：使用便捷命令（推荐）**
+```bash
+clashuninstall
 ```
+
+**方法二：直接运行卸载脚本**
+```bash
+# 在线卸载
+curl -fsSL https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh | sudo bash
+
+# 本地卸载（如果已下载）
+sudo bash uninstall.sh
+```
+
+**方法三：手动卸载**
+```bash
+# 停止并禁用服务
+sudo systemctl stop mihomo
+sudo systemctl disable mihomo
+
+# 删除文件和目录
+sudo rm -rf /etc/mihomo
+sudo rm -f /etc/systemd/system/mihomo.service
+sudo rm -f /usr/local/bin/clash*
+
+# 清理配置
+sudo sed -i '/clash_control\.sh/d' /etc/bashrc
+sudo systemctl daemon-reload
+```
+
+**注意事项：**
+- 卸载前会要求确认，避免误操作
+- 自动清理所有相关文件和配置
+- 卸载后需要重启终端以清理环境变量
 
 ## 法律声明
 

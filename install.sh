@@ -133,9 +133,22 @@ function clashoff() {
 function clashui() {
     local local_ip=$(hostname -I | awk '{print $1}')
     local public_ip=$(curl -s ifconfig.me)
-    local port=7890
+    local port=9090
     echo "内网 UI 地址: http://$local_ip:$port/ui"
     echo "公网 UI 地址: http://$public_ip:$port/ui"
+}
+
+function clashuninstall() {
+    echo "🗑️  启动 Mihomo 卸载程序..."
+    if [ -f "/etc/mihomo/uninstall.sh" ]; then
+        sudo bash /etc/mihomo/uninstall.sh
+    elif [ -f "$(dirname "${BASH_SOURCE[0]}")/uninstall.sh" ]; then
+        sudo bash "$(dirname "${BASH_SOURCE[0]}")/uninstall.sh"
+    else
+        echo "❌ 未找到卸载脚本"
+        echo "请手动下载并运行: https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh"
+        echo "或使用命令: curl -fsSL https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh | sudo bash"
+    fi
 }
 EOF
 
@@ -153,6 +166,7 @@ echo "安装完成！可以通过以下命令控制代理："
 echo "- 启动代理环境: clashon"
 echo "- 关闭代理环境: clashoff"
 echo "- 查看 Web 面板地址: clashui"
+echo "- 完整卸载程序: clashuninstall"
 echo "注意：执行代理控制命令时需要管理员权限（sudo）。"
 
 clashon
