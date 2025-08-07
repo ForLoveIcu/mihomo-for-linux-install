@@ -81,11 +81,15 @@ install_dependencies() {
 
 # GitHub 加速镜像列表 - 针对网络受限环境优化
 get_github_mirrors() {
-    echo "https://ghproxy.net/"
+    # 基于 XIU2 脚本中的可靠镜像源
+    echo "https://ghfast.top/"
     echo "https://github.moeyy.xyz/"
-    echo "https://github.akams.cn/"
+    echo "https://gh.h233.eu.org/"
+    echo "https://cors.isteed.cc/github.com"
     echo "https://hub.gitmirror.com/"
-    echo "https://gitclone.com/"
+    echo "https://github.boki.moe/"
+    echo "https://gh-proxy.net/"
+    echo "https://ghproxy.net/"
     echo "https://gh-proxy.com/"
     echo "https://mirror.ghproxy.com/"
     echo "https://ghproxy.com/"
