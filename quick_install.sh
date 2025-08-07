@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Mihomo Linux 一键安装脚本 v2.0.0
-# 支持多架构、多系统、智能下载
+# Mihomo Linux 一键安装脚本 v2.2.1
+# 支持多架构、多系统、智能下载、资源配置管理
+# 项目地址: https://github.com/ForLoveIcu/mihomo-for-linux-install
 
 set -e
 
@@ -29,21 +30,48 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# 检测系统架构
+# 加载资源配置
+load_config() {
+    # 内置基本配置（作为备用）
+    MIHOMO_VERSION="v1.19.12"
+    WEBUI_VERSION="v1.19.12"
+
+    # 架构文件映射
+    declare -A ARCH_FILES=(
+        ["x86_64"]="mihomo-linux-amd64-v1-v1.19.12.gz"
+        ["aarch64"]="mihomo-linux-arm64-v1.19.12.gz"
+        ["arm64"]="mihomo-linux-arm64-v1.19.12.gz"
+        ["armv7l"]="mihomo-linux-armv7-v1.19.12.gz"
+    )
+
+    # 下载地址
+    MIHOMO_BASE_URL="https://github.com/MetaCubeX/mihomo/releases/download/v1.19.12"
+    WEBUI_DOWNLOAD_URL="https://github.com/MetaCubeX/metacubexd/releases/download/v1.19.12/compressed-dist.tgz"
+
+    log_info "已加载内置资源配置 (Mihomo $MIHOMO_VERSION)"
+}
+
+# 检测系统架构并返回对应的下载文件名
 detect_arch() {
     local arch=$(uname -m)
+
+    # 使用配置中的架构映射
     case $arch in
         x86_64)
-            echo "amd64-v1"
+            echo "${ARCH_FILES[x86_64]}"
             ;;
-        aarch64|arm64)
-            echo "arm64"
+        aarch64)
+            echo "${ARCH_FILES[aarch64]}"
+            ;;
+        arm64)
+            echo "${ARCH_FILES[arm64]}"
             ;;
         armv7l)
-            echo "armv7"
+            echo "${ARCH_FILES[armv7l]}"
             ;;
         *)
             log_error "不支持的架构: $arch"
+            log_error "支持的架构: x86_64, aarch64, arm64, armv7l"
             exit 1
             ;;
     esac
@@ -217,35 +245,42 @@ EOF
 # 主安装函数
 main() {
     log_info "开始安装 Mihomo..."
-    
+
+    # 加载配置
+    load_config
+
     # 检查权限
     if [ "$EUID" -ne 0 ]; then
         log_error "请使用 root 权限运行此脚本"
         exit 1
     fi
     
-    # 检测架构
-    local arch=$(detect_arch)
-    log_info "检测到架构: $arch"
-    
+    # 检测架构并获取对应的文件名
+    local arch_file=$(detect_arch)
+    local arch_name=$(uname -m)
+    log_info "检测到架构: $arch_name"
+    log_info "目标版本: $MIHOMO_VERSION"
+    log_info "下载文件: $arch_file"
+
     # 安装依赖
     install_dependencies
-    
+
     # 创建目录
     mkdir -p /etc/mihomo
     mkdir -p /opt/mihomo
-    
-    # 下载 Mihomo 核心
-    local mihomo_url="https://github.com/MetaCubeX/mihomo/releases/latest/download/mihomo-linux-${arch}.gz"
+
+    # 下载 Mihomo 核心 - 使用配置中的固定版本
+    local mihomo_url="${MIHOMO_BASE_URL}/${arch_file}"
+    log_info "下载地址: $mihomo_url"
     download_file "$mihomo_url" "/tmp/mihomo.gz"
     
     # 解压并安装
     gunzip -c /tmp/mihomo.gz > /opt/mihomo/mihomo
     chmod +x /opt/mihomo/mihomo
     
-    # 下载 WebUI
-    local ui_url="https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
-    download_file "$ui_url" "/tmp/ui.tgz"
+    # 下载 WebUI - 使用配置中的固定版本
+    log_info "下载 WebUI: $WEBUI_VERSION"
+    download_file "$WEBUI_DOWNLOAD_URL" "/tmp/ui.tgz"
     
     mkdir -p /etc/mihomo/ui
     tar -xzf /tmp/ui.tgz -C /etc/mihomo/ui
