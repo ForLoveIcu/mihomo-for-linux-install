@@ -79,23 +79,51 @@ install_dependencies() {
     esac
 }
 
-# 下载文件
+# GitHub 加速镜像列表
+get_github_mirrors() {
+    echo "https://ghproxylist.com/"
+    echo "https://ghproxy.com/"
+    echo "https://mirror.ghproxy.com/"
+    echo ""  # 原始地址作为最后备选
+}
+
+# 智能下载文件 - 支持多镜像加速
 download_file() {
-    local url=$1
+    local original_url=$1
     local output=$2
     local max_attempts=3
-    
-    for i in $(seq 1 $max_attempts); do
-        log_info "尝试下载 ($i/$max_attempts): $url"
-        if curl -L -o "$output" "$url"; then
-            log_success "下载成功: $output"
-            return 0
+
+    # 获取镜像列表
+    local mirrors=($(get_github_mirrors))
+
+    # 遍历每个镜像进行下载尝试
+    for mirror in "${mirrors[@]}"; do
+        local download_url
+        if [ -z "$mirror" ]; then
+            # 空镜像表示使用原始地址
+            download_url="$original_url"
+            log_info "尝试原始地址下载: $original_url"
+        else
+            # 使用镜像加速
+            download_url="${mirror}${original_url}"
+            log_info "尝试镜像加速下载: $mirror"
         fi
-        log_warn "下载失败，重试中..."
-        sleep 2
+
+        # 对每个镜像进行多次重试
+        for i in $(seq 1 $max_attempts); do
+            log_info "下载尝试 ($i/$max_attempts): $(basename "$output")"
+            if curl -L --connect-timeout 10 --max-time 300 -o "$output" "$download_url"; then
+                log_success "下载成功: $output"
+                return 0
+            fi
+            log_warn "下载失败，重试中..."
+            sleep 2
+        done
+
+        log_warn "镜像 $mirror 下载失败，尝试下一个镜像..."
     done
-    
-    log_error "下载失败: $url"
+
+    log_error "所有镜像下载失败: $original_url"
     return 1
 }
 
