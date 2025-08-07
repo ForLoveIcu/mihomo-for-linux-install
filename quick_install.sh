@@ -113,6 +113,12 @@ download_file() {
         for i in $(seq 1 $max_attempts); do
             log_info "下载尝试 ($i/$max_attempts): $(basename "$output")"
             if curl -L --connect-timeout 10 --max-time 300 -o "$output" "$download_url"; then
+                # 验证下载的文件格式
+                if file "$output" | grep -q "HTML\|text"; then
+                    log_warn "下载的文件格式不正确 (HTML/文本)，可能是镜像服务问题"
+                    rm -f "$output"
+                    break  # 跳出重试循环，尝试下一个镜像
+                fi
                 log_success "下载成功: $output"
                 return 0
             fi
