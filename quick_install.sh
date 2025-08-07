@@ -36,9 +36,9 @@ load_config() {
     MIHOMO_VERSION="v1.19.12"
     WEBUI_VERSION="v1.19.12"
 
-    # 架构文件映射
+    # 架构文件映射 - 使用正确的文件名
     declare -A ARCH_FILES=(
-        ["x86_64"]="mihomo-linux-amd64-v1-v1.19.12.gz"
+        ["x86_64"]="mihomo-linux-amd64-compatible-v1.19.12.gz"
         ["aarch64"]="mihomo-linux-arm64-v1.19.12.gz"
         ["arm64"]="mihomo-linux-arm64-v1.19.12.gz"
         ["armv7l"]="mihomo-linux-armv7-v1.19.12.gz"
@@ -107,20 +107,12 @@ install_dependencies() {
     esac
 }
 
-# GitHub 加速镜像列表 - 针对网络受限环境优化
+# GitHub 加速镜像列表 - 仅包含经过实际测试可用的镜像
 get_github_mirrors() {
-    # 基于 XIU2 脚本中的可靠镜像源
+    # 经过实际测试确认可用的镜像服务
     echo "https://ghfast.top/"
-    echo "https://github.moeyy.xyz/"
-    echo "https://gh.h233.eu.org/"
     echo "https://cors.isteed.cc/github.com"
     echo "https://hub.gitmirror.com/"
-    echo "https://github.boki.moe/"
-    echo "https://gh-proxy.net/"
-    echo "https://ghproxy.net/"
-    echo "https://gh-proxy.com/"
-    echo "https://mirror.ghproxy.com/"
-    echo "https://ghproxy.com/"
     echo ""  # 原始地址作为最后备选
 }
 
