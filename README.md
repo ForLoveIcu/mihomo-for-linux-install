@@ -68,6 +68,8 @@ chmod +x install.sh
 - `clashstatus` - 查看服务状态
 - `clashlog` - 查看服务日志
 - `clashrestart` - 重启服务
+- `clashfrontend` - 前端界面管理
+- `clashuninstall` - 完整卸载
 
 ### 系统服务
 ```bash
@@ -98,12 +100,41 @@ systemctl disable mihomo
 http://服务器IP:9090
 ```
 
+#### 多前端支持
+项目支持两种前端界面，可根据需求选择：
+
+**MetaCubeXD (默认)**
+- 官方维护，功能完整
+- 稳定可靠，兼容性好
+- 适合生产环境使用
+
+**Zashboard**
+- 现代化设计，界面美观
+- 移动端友好，响应式布局
+- 基于 Vue 3，性能优秀
+
+#### 前端管理命令
+```bash
+# 查看当前前端信息
+clashfrontend info
+
+# 切换到 MetaCubeXD
+clashfrontend switch metacubexd
+
+# 切换到 Zashboard
+clashfrontend switch zashboard
+
+# 交互式前端选择
+clashfrontend
+```
+
 ## 技术架构
 
 ### 组件说明
 - **Mihomo**: 核心代理引擎，基于 Clash Meta
-- **MetaCubeXD**: Web 管理界面
+- **前端界面**: 支持 MetaCubeXD 和 Zashboard 两种选择
 - **安装脚本**: 自动化部署工具
+- **前端管理器**: 支持前端切换和管理
 
 ### 镜像加速机制
 项目集成了多个 GitHub 镜像服务，按优先级自动选择：

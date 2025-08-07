@@ -150,6 +150,16 @@ function clashuninstall() {
         echo "或使用命令: curl -fsSL https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh | sudo bash"
     fi
 }
+
+function clashfrontend() {
+    echo "🎨 启动前端管理工具..."
+    if [ -f "/etc/mihomo/frontend_manager.sh" ]; then
+        sudo bash /etc/mihomo/frontend_manager.sh "$@"
+    else
+        echo "❌ 前端管理脚本不存在"
+        echo "请重新安装或手动下载: https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/frontend_manager.sh"
+    fi
+}
 EOF
 
 # 给脚本加上执行权限
@@ -166,6 +176,7 @@ echo "安装完成！可以通过以下命令控制代理："
 echo "- 启动代理环境: clashon"
 echo "- 关闭代理环境: clashoff"
 echo "- 查看 Web 面板地址: clashui"
+echo "- 前端界面管理: clashfrontend"
 echo "- 完整卸载程序: clashuninstall"
 echo "注意：执行代理控制命令时需要管理员权限（sudo）。"
 

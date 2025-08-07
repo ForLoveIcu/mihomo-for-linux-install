@@ -245,7 +245,119 @@ else
 fi
 EOF
 
-    chmod +x /usr/local/bin/clash{on,off,status,log,restart,uninstall}
+    # clashfrontend - 前端管理
+    cat > /usr/local/bin/clashfrontend << 'EOF'
+#!/bin/bash
+echo "🎨 启动前端管理工具..."
+if [ -f "/etc/mihomo/frontend_manager.sh" ]; then
+    bash /etc/mihomo/frontend_manager.sh "$@"
+else
+    echo "❌ 前端管理脚本不存在"
+    echo "请重新安装或手动下载: https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/frontend_manager.sh"
+fi
+EOF
+
+    chmod +x /usr/local/bin/clash{on,off,status,log,restart,uninstall,frontend}
+}
+
+# 前端选择函数
+choose_frontend() {
+    echo ""
+    echo -e "${CYAN}🎨 选择前端界面${NC}"
+    echo -e "${CYAN}================================${NC}"
+    echo ""
+    echo "请选择要安装的前端界面："
+    echo ""
+    echo "  1) MetaCubeXD (推荐)"
+    echo "     • 官方维护，功能完整"
+    echo "     • 稳定可靠，兼容性好"
+    echo "     • 适合生产环境使用"
+    echo ""
+    echo "  2) Zashboard"
+    echo "     • 现代化设计，界面美观"
+    echo "     • 移动端友好，响应式布局"
+    echo "     • 基于 Vue 3，性能优秀"
+    echo ""
+
+    while true; do
+        read -p "请输入选择 [1-2] (默认: 1): " frontend_choice
+        frontend_choice=${frontend_choice:-1}
+
+        case "$frontend_choice" in
+            1)
+                SELECTED_FRONTEND="metacubexd"
+                log_info "已选择: MetaCubeXD"
+                break
+                ;;
+            2)
+                SELECTED_FRONTEND="zashboard"
+                log_info "已选择: Zashboard"
+                break
+                ;;
+            *)
+                echo "❌ 无效选择，请输入 1 或 2"
+                ;;
+        esac
+    done
+}
+
+# 安装 MetaCubeXD 前端
+install_metacubexd() {
+    log_info "安装 MetaCubeXD 前端..."
+
+    # 使用配置文件中的下载地址
+    local download_url="https://github.com/MetaCubeX/metacubexd/releases/download/v1.189.0/compressed-dist.tgz"
+
+    download_file "$download_url" "/tmp/ui.tgz"
+
+    mkdir -p /etc/mihomo/ui
+    tar -xzf /tmp/ui.tgz -C /etc/mihomo/ui
+
+    # 记录前端信息
+    echo "metacubexd" > /etc/mihomo/ui/.frontend_info
+    echo "MetaCubeXD v1.189.0" > /etc/mihomo/ui/.frontend_version
+
+    log_success "MetaCubeXD 前端安装完成"
+}
+
+# 安装 Zashboard 前端
+install_zashboard() {
+    log_info "安装 Zashboard 前端..."
+
+    # 下载 Zashboard
+    local download_url="https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip"
+
+    download_file "$download_url" "/tmp/ui.zip"
+
+    mkdir -p /etc/mihomo/ui
+    unzip -q /tmp/ui.zip -d /etc/mihomo/ui
+
+    # 记录前端信息
+    echo "zashboard" > /etc/mihomo/ui/.frontend_info
+    echo "Zashboard latest" > /etc/mihomo/ui/.frontend_version
+
+    log_success "Zashboard 前端安装完成"
+}
+
+# 安装前端界面
+install_frontend() {
+    # 如果没有选择前端，进行选择
+    if [ -z "$SELECTED_FRONTEND" ]; then
+        choose_frontend
+    fi
+
+    case "$SELECTED_FRONTEND" in
+        "metacubexd")
+            install_metacubexd
+            ;;
+        "zashboard")
+            install_zashboard
+            ;;
+        *)
+            log_warning "未知前端选择，使用默认的 MetaCubeXD"
+            install_metacubexd
+            ;;
+    esac
 }
 
 # 主安装函数
@@ -290,12 +402,8 @@ main() {
     gunzip -c /tmp/mihomo.gz > /opt/mihomo/mihomo
     chmod +x /opt/mihomo/mihomo
     
-    # 下载 WebUI - 使用配置中的固定版本
-    log_info "下载 WebUI: $WEBUI_VERSION"
-    download_file "$WEBUI_DOWNLOAD_URL" "/tmp/ui.tgz"
-    
-    mkdir -p /etc/mihomo/ui
-    tar -xzf /tmp/ui.tgz -C /etc/mihomo/ui
+    # 安装前端界面
+    install_frontend
     
     # 创建配置文件
     if [ ! -f /etc/mihomo/config.yaml ]; then
@@ -360,7 +468,7 @@ EOF
     # 创建完整的便捷命令系统
     create_convenience_commands
 
-    log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart, clashuninstall"
+    log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart, clashuninstall, clashfrontend"
 
     # 下载并安装卸载脚本
     log_info "安装卸载脚本..."
@@ -371,8 +479,17 @@ EOF
         log_warning "卸载脚本下载失败，可以手动下载"
     fi
 
+    # 下载并安装前端管理脚本
+    log_info "安装前端管理脚本..."
+    if curl -fsSL "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/frontend_manager.sh" -o "/etc/mihomo/frontend_manager.sh"; then
+        chmod +x /etc/mihomo/frontend_manager.sh
+        log_success "前端管理脚本已安装到 /etc/mihomo/frontend_manager.sh"
+    else
+        log_warning "前端管理脚本下载失败，可以手动下载"
+    fi
+
     # 清理临时文件
-    rm -f /tmp/mihomo.gz /tmp/ui.tgz
+    rm -f /tmp/mihomo.gz /tmp/ui.tgz /tmp/ui.zip
     
     log_success "Mihomo 安装完成！"
     log_info "管理界面: http://$(hostname -I | awk '{print $1}'):9090"
