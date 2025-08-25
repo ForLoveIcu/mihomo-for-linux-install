@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Mihomo Linux 一键安装脚本 v2.2.1
-# 支持多架构、多系统、智能下载、资源配置管理
+# Mihomo Linux 一键安装脚本 v2.2.2
+# 支持多架构、多系统、智能下载、资源配置管理、覆盖安装
 # 项目地址: https://github.com/ForLoveIcu/mihomo-for-linux-install
 
 set -e
@@ -93,13 +93,13 @@ install_dependencies() {
     case $os in
         ubuntu|debian)
             apt-get update
-            apt-get install -y curl wget unzip
+            apt-get install -y curl wget unzip file
             ;;
         centos|rhel|rocky)
-            yum install -y curl wget unzip
+            yum install -y curl wget unzip file
             ;;
         *)
-            log_warn "未知系统，跳过依赖安装"
+            log_warn "未知系统，跳过依赖安装。请确保已安装 curl, wget, unzip, file"
             ;;
     esac
 }
@@ -131,7 +131,7 @@ download_file() {
             log_info "尝试原始地址下载: GitHub.com"
         else
             # 使用镜像加速
-            download_url="${mirror}${original_url}"
+            download_url="${mirror}${original_url#https://}"
             log_info "尝试镜像加速下载: $mirror"
         fi
 
@@ -143,14 +143,14 @@ download_file() {
                 if [ -f "$output" ]; then
                     # 检查文件格式
                     local file_type=$(file "$output" 2>/dev/null || echo "unknown")
-                    if echo "$file_type" | grep -q "HTML\|text\|XML"; then
+                    if echo "$file_type" | grep -q "HTML\|XML"; then
                         log_warn "下载的文件格式不正确 ($file_type)，可能是镜像服务问题"
                         rm -f "$output"
-                        break  # 跳出重试循环，尝试下一个镜像
+                        break
                     fi
                     # 检查文件大小
                     local file_size=$(stat -c%s "$output" 2>/dev/null || echo "0")
-                    if [ "$file_size" -lt 1000 ]; then
+                    if [ "$file_size" -lt 100 ]; then
                         log_warn "下载的文件太小 (${file_size} bytes)，可能不是正确的文件"
                         rm -f "$output"
                         break
@@ -301,41 +301,30 @@ choose_frontend() {
     done
 }
 
+
 # 安装 MetaCubeXD 前端
 install_metacubexd() {
     log_info "安装 MetaCubeXD 前端..."
-
-    # 使用配置文件中的下载地址
     local download_url="https://github.com/MetaCubeX/metacubexd/releases/download/v1.189.0/compressed-dist.tgz"
-
     download_file "$download_url" "/tmp/ui.tgz"
-
+    rm -rf /etc/mihomo/ui
     mkdir -p /etc/mihomo/ui
     tar -xzf /tmp/ui.tgz -C /etc/mihomo/ui
-
-    # 记录前端信息
     echo "metacubexd" > /etc/mihomo/ui/.frontend_info
     echo "MetaCubeXD v1.189.0" > /etc/mihomo/ui/.frontend_version
-
     log_success "MetaCubeXD 前端安装完成"
 }
 
 # 安装 Zashboard 前端
 install_zashboard() {
     log_info "安装 Zashboard 前端..."
-
-    # 下载 Zashboard
     local download_url="https://github.com/Zephyruso/zashboard/releases/latest/download/dist-cdn-fonts.zip"
-
     download_file "$download_url" "/tmp/ui.zip"
-
+    rm -rf /etc/mihomo/ui
     mkdir -p /etc/mihomo/ui
     unzip -q /tmp/ui.zip -d /etc/mihomo/ui
-
-    # 记录前端信息
     echo "zashboard" > /etc/mihomo/ui/.frontend_info
     echo "Zashboard latest" > /etc/mihomo/ui/.frontend_version
-
     log_success "Zashboard 前端安装完成"
 }
 
@@ -354,7 +343,7 @@ install_frontend() {
             install_zashboard
             ;;
         *)
-            log_warning "未知前端选择，使用默认的 MetaCubeXD"
+            log_warn "未知前端选择，使用默认的 MetaCubeXD"
             install_metacubexd
             ;;
     esac
@@ -371,6 +360,23 @@ main() {
     if [ "$EUID" -ne 0 ]; then
         log_error "请使用 root 权限运行此脚本"
         exit 1
+    fi
+
+    # 检查并处理已存在的安装
+    if [ -f "/opt/mihomo/mihomo" ] || [ -d "/etc/mihomo" ]; then
+        log_warn "检测到 Mihomo 已安装。"
+        read -p "是否要覆盖安装？[y/N]: " choice
+        choice=${choice:-N}
+
+        if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+            log_info "操作已取消。"
+            exit 0
+        fi
+
+        if systemctl is-active --quiet mihomo; then
+            log_info "正在停止现有的 Mihomo 服务..."
+            systemctl stop mihomo
+        fi
     fi
     
     # 检测架构并获取对应的文件名
@@ -393,7 +399,7 @@ main() {
     mkdir -p /etc/mihomo
     mkdir -p /opt/mihomo
 
-    # 下载 Mihomo 核心 - 使用配置中的固定版本
+    # 下载 Mihomo 核心
     local mihomo_url="${MIHOMO_BASE_URL}/${arch_file}"
     log_info "下载地址: $mihomo_url"
     download_file "$mihomo_url" "/tmp/mihomo.gz"
@@ -403,10 +409,14 @@ main() {
     chmod +x /opt/mihomo/mihomo
     
     # 安装前端界面
-    install_frontend
+    if [ ! -f "/etc/mihomo/ui/.frontend_info" ]; then
+        install_frontend
+    else
+        log_info "检测到已安装前端UI，跳过安装。如需更换，请使用 'clashfrontend' 命令。"
+    fi
     
     # 创建配置文件
-    if [ ! -f /etc/mihomo/config.yaml ]; then
+    if [ ! -f "/etc/mihomo/config.yaml" ]; then
         cat > /etc/mihomo/config.yaml << 'EOF'
 port: 7890
 socks-port: 7891
@@ -470,23 +480,15 @@ EOF
 
     log_success "便捷命令已创建: clashon, clashoff, clashstatus, clashlog, clashrestart, clashuninstall, clashfrontend"
 
-    # 下载并安装卸载脚本
-    log_info "安装卸载脚本..."
-    if curl -fsSL "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh" -o "/etc/mihomo/uninstall.sh"; then
+    # 下载并安装管理脚本
+    log_info "安装管理脚本..."
+    if download_file "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/uninstall.sh" "/etc/mihomo/uninstall.sh"; then
         chmod +x /etc/mihomo/uninstall.sh
-        log_success "卸载脚本已安装到 /etc/mihomo/uninstall.sh"
-    else
-        log_warning "卸载脚本下载失败，可以手动下载"
     fi
-
-    # 下载并安装前端管理脚本
-    log_info "安装前端管理脚本..."
-    if curl -fsSL "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/frontend_manager.sh" -o "/etc/mihomo/frontend_manager.sh"; then
+    if download_file "https://github.com/ForLoveIcu/mihomo-for-linux-install/raw/master/frontend_manager.sh" "/etc/mihomo/frontend_manager.sh"; then
         chmod +x /etc/mihomo/frontend_manager.sh
-        log_success "前端管理脚本已安装到 /etc/mihomo/frontend_manager.sh"
-    else
-        log_warning "前端管理脚本下载失败，可以手动下载"
     fi
+    log_success "管理脚本已安装到 /etc/mihomo/"
 
     # 清理临时文件
     rm -f /tmp/mihomo.gz /tmp/ui.tgz /tmp/ui.zip
