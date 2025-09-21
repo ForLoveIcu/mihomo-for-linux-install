@@ -85,7 +85,7 @@ verify_files() {
     log_info "验证下载的文件..."
     
     local files=(
-        "binaries/mihomo-linux-amd64-v1-v1.19.12.gz"
+        "binaries/mihomo-linux-amd64-compatible-v1.19.12.gz"
         "binaries/mihomo-linux-arm64-v1.19.12.gz"
         "binaries/mihomo-linux-armv7-v1.19.12.gz"
         "binaries/metacubexd.tgz"
@@ -143,7 +143,7 @@ generate_manifest() {
 ## 文件列表
 
 ### Mihomo 核心文件
-- \`mihomo-linux-amd64-v1-v1.19.12.gz\` - x86_64 架构
+- \`mihomo-linux-amd64-compatible-v1.19.12.gz\` - x86_64 架构
 - \`mihomo-linux-arm64-v1.19.12.gz\` - ARM64 架构  
 - \`mihomo-linux-armv7-v1.19.12.gz\` - ARMv7 架构
 

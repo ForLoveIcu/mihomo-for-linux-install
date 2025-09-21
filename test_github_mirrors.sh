@@ -29,7 +29,7 @@ get_github_mirrors() {
 # 测试下载速度
 test_download_speed() {
     local mirror=$1
-    local test_url="https://github.com/MetaCubeX/mihomo/releases/latest/download/mihomo-linux-amd64-v1.gz"
+    local test_url="https://github.com/MetaCubeX/mihomo/releases/latest/download/mihomo-linux-amd64-compatible-v1.gz"
     local download_url
     
     if [ -z "$mirror" ]; then

@@ -55,23 +55,14 @@ load_config() {
 detect_arch() {
     local arch=$(uname -m)
 
-    # 直接返回对应的文件名
-    case $arch in
-        x86_64)
-            echo "mihomo-linux-amd64-compatible-v1.19.12.gz"
-            ;;
-        aarch64|arm64)
-            echo "mihomo-linux-arm64-v1.19.12.gz"
-            ;;
-        armv7l)
-            echo "mihomo-linux-armv7-v1.19.12.gz"
-            ;;
-        *)
-            log_error "不支持的架构: $arch"
-            log_error "支持的架构: x86_64, aarch64, arm64, armv7l"
-            exit 1
-            ;;
-    esac
+    # 使用 ARCH_FILES 数组获取对应的文件名
+    if [[ -n "${ARCH_FILES[$arch]}" ]]; then
+        echo "${ARCH_FILES[$arch]}"
+    else
+        log_error "不支持的架构: $arch"
+        log_error "支持的架构: ${!ARCH_FILES[*]}"
+        exit 1
+    fi
 }
 
 # 检测操作系统

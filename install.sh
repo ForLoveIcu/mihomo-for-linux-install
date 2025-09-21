@@ -10,6 +10,85 @@ MihomoDir="/etc/mihomo"
 ConfigFile="config.yaml"
 CountryFile="Country.mmdb"
 
+# 加载资源配置
+load_config() {
+    # 尝试加载 resources.conf 配置文件
+    if [ -f "resources.conf" ]; then
+        source resources.conf
+        log_info "已加载 resources.conf 配置文件"
+    else
+        # 内置备用配置
+        log_warn "未找到 resources.conf，使用内置配置"
+        ARCH_x86_64_MIHOMO="mihomo-linux-amd64-compatible-v1.19.12.gz"
+        ARCH_aarch64_MIHOMO="mihomo-linux-arm64-v1.19.12.gz"
+        ARCH_arm64_MIHOMO="mihomo-linux-arm64-v1.19.12.gz"
+        ARCH_armv7l_MIHOMO="mihomo-linux-armv7-v1.19.12.gz"
+        BUILTIN_WEBUI="metacubexd.tgz"
+    fi
+}
+
+# 检测系统架构并返回对应的文件名
+detect_arch_file() {
+    local arch=$(uname -m)
+
+    case $arch in
+        x86_64)
+            echo "${ARCH_x86_64_MIHOMO:-mihomo-linux-amd64-compatible-v1.19.12.gz}"
+            ;;
+        aarch64)
+            echo "${ARCH_aarch64_MIHOMO:-mihomo-linux-arm64-v1.19.12.gz}"
+            ;;
+        arm64)
+            echo "${ARCH_arm64_MIHOMO:-mihomo-linux-arm64-v1.19.12.gz}"
+            ;;
+        armv7l)
+            echo "${ARCH_armv7l_MIHOMO:-mihomo-linux-armv7-v1.19.12.gz}"
+            ;;
+        *)
+            log_error "不支持的架构: $arch"
+            log_error "支持的架构: x86_64, aarch64, arm64, armv7l"
+            exit 1
+            ;;
+    esac
+}
+
+# 查找文件（支持多个可能的路径）
+find_file() {
+    local filename=$1
+    local search_paths=("." "binaries" "../binaries")
+
+    for path in "${search_paths[@]}"; do
+        if [ -f "$path/$filename" ]; then
+            echo "$path/$filename"
+            return 0
+        fi
+    done
+
+    # 如果在搜索路径中找不到，返回原始文件名（可能在当前目录）
+    echo "$filename"
+    return 1
+}
+
+# 设置分发文件变量
+setup_dist_files() {
+    # 如果变量已经设置（从外部传入），则不覆盖
+    if [ -z "$DistFile1" ]; then
+        local arch_file=$(detect_arch_file)
+        DistFile1=$(find_file "$arch_file")
+        log_info "设置 DistFile1: $DistFile1"
+    else
+        log_info "使用外部设置的 DistFile1: $DistFile1"
+    fi
+
+    if [ -z "$DistFile2" ]; then
+        local webui_file="${BUILTIN_WEBUI:-metacubexd.tgz}"
+        DistFile2=$(find_file "$webui_file")
+        log_info "设置 DistFile2: $DistFile2"
+    else
+        log_info "使用外部设置的 DistFile2: $DistFile2"
+    fi
+}
+
 # 颜色定义
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -22,6 +101,11 @@ log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# 初始化配置和文件变量
+log_info "初始化安装配置..."
+load_config
+setup_dist_files
 
 # 检查 /etc/mihomo 目录是否存在
 if [ -d "$MihomoDir" ]; then
@@ -39,10 +123,20 @@ echo "创建目录 /etc/mihomo..."
 mkdir -p "$MihomoDir"
 
 # 检查并终止正在运行的 mihomo 进程
-echo "发现正在运行的 mihomo 进程，正在终止..."
-pid=$(pgrep mihomo)
+echo "检查正在运行的 mihomo 进程..."
+pid=$(pgrep mihomo 2>/dev/null || true)
 if [ -n "$pid" ]; then
-    kill -9 "$pid"
+    echo "发现正在运行的 mihomo 进程 (PID: $pid)，正在终止..."
+    kill -9 "$pid" 2>/dev/null || true
+    sleep 1
+    # 再次检查是否成功终止
+    if pgrep mihomo >/dev/null 2>&1; then
+        log_warn "mihomo 进程可能仍在运行，请手动检查"
+    else
+        log_success "mihomo 进程已成功终止"
+    fi
+else
+    echo "未发现运行中的 mihomo 进程"
 fi
 
 # 解压文件
@@ -63,7 +157,9 @@ fi
 
 # 复制 config.yaml 文件到 /etc/mihomo
 if [ -f "$ConfigFile" ]; then
+    echo "复制 $ConfigFile 到 $MihomoDir..."
     cp "$ConfigFile" "$MihomoDir/"
+    log_success "config.yaml 复制完成"
 else
     echo "找不到 config.yaml，跳过复制"
 fi
@@ -71,7 +167,8 @@ fi
 # 复制 Country.mmdb 到 /etc/mihomo
 if [ -f "$CountryFile" ]; then
     echo "复制 $CountryFile 到 $MihomoDir..."
-    sudo cp "$CountryFile" "$MihomoDir/"
+    cp "$CountryFile" "$MihomoDir/"
+    log_success "Country.mmdb 复制完成"
 else
     echo "找不到文件 $CountryFile，跳过复制"
 fi
@@ -180,4 +277,14 @@ echo "- 前端界面管理: clashfrontend"
 echo "- 完整卸载程序: clashuninstall"
 echo "注意：执行代理控制命令时需要管理员权限（sudo）。"
 
-clashon
+# 启动 mihomo 服务并设置代理环境
+log_info "启动 Mihomo 服务..."
+if systemctl start mihomo; then
+    log_success "Mihomo 服务已启动"
+    echo "🌐 管理界面: http://$(hostname -I | awk '{print $1}' 2>/dev/null || echo '127.0.0.1'):9090/ui"
+    echo ""
+    echo "💡 提示：重新加载 shell 配置以使用便捷命令："
+    echo "   source ~/.bashrc"
+else
+    log_error "Mihomo 服务启动失败，请检查日志: journalctl -u mihomo"
+fi
