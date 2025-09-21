@@ -12,7 +12,7 @@
 - **镜像加速**: 集成多个 GitHub 文件加速服务，提升下载成功率
 - **智能切换**: 自动故障转移机制，确保安装可靠性
 - **系统集成**: 完整的 systemd 服务配置和管理
-- **Web 界面**: 集成 MetaCubeXD 管理界面
+- **多前端支持**: 支持 MetaCubeXD 和 Zashboard 两种 Web 管理界面
 - **便捷管理**: 提供简化的命令行工具
 
 ### 技术实现
@@ -247,7 +247,8 @@ sudo systemctl daemon-reload
 ## 相关项目
 
 - [Mihomo](https://github.com/MetaCubeX/mihomo) - 核心代理引擎
-- [MetaCubeXD](https://github.com/MetaCubeX/metacubexd) - Web 管理界面
+- [MetaCubeXD](https://github.com/MetaCubeX/metacubexd) - Web 管理界面 (默认)
+- [Zashboard](https://github.com/Zephyruso/zashboard) - 现代化 Web 管理界面
 
 ---
 
