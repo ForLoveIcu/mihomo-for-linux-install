@@ -37,7 +37,7 @@ load_config() {
     WEBUI_VERSION="v1.19.12"
 
     # 架构文件映射 - 使用正确的文件名
-    declare -A ARCH_FILES=(
+    declare -gA ARCH_FILES=(
         ["x86_64"]="mihomo-linux-amd64-compatible-v1.19.12.gz"
         ["aarch64"]="mihomo-linux-arm64-v1.19.12.gz"
         ["arm64"]="mihomo-linux-arm64-v1.19.12.gz"
