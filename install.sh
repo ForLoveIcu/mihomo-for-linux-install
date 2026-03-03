@@ -264,7 +264,9 @@ chmod 755 /etc/mihomo/clash_control.sh
 
 # 添加到 ~/.bashrc 中
 echo "将代理控制命令添加到 ~/.bashrc..."
-echo "source /etc/mihomo/clash_control.sh" >> /etc/bashrc
+if ! grep -q "source /etc/mihomo/clash_control.sh" ~/.bashrc; then
+    echo "source /etc/mihomo/clash_control.sh" >> ~/.bashrc
+fi
 
 # 重新加载 ~/.bashrc 配置
 source ~/.bashrc
