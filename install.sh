@@ -262,14 +262,32 @@ EOF
 # 给脚本加上执行权限
 chmod 755 /etc/mihomo/clash_control.sh
 
-# 添加到 ~/.bashrc 中
-echo "将代理控制命令添加到 ~/.bashrc..."
-if ! grep -q "source /etc/mihomo/clash_control.sh" ~/.bashrc; then
-    echo "source /etc/mihomo/clash_control.sh" >> ~/.bashrc
+# 添加到 bashrc 中(自适应检测系统)
+echo "将代理控制命令添加到 bashrc..."
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    case "$ID" in
+        ubuntu|debian)
+            BASHRC_FILE="$HOME/.bashrc"
+            ;;
+        centos|rhel|fedora|rocky)
+            BASHRC_FILE="/etc/bashrc"
+            ;;
+        *)
+            BASHRC_FILE="$HOME/.bashrc"
+            ;;
+    esac
+else
+    BASHRC_FILE="$HOME/.bashrc"
 fi
 
-# 重新加载 ~/.bashrc 配置
-source ~/.bashrc
+if ! grep -q "source /etc/mihomo/clash_control.sh" "$BASHRC_FILE"; then
+    echo "source /etc/mihomo/clash_control.sh" >> "$BASHRC_FILE"
+    log_success "已添加到 $BASHRC_FILE"
+fi
+
+# 重新加载配置
+source "$BASHRC_FILE" 2>/dev/null || true
 
 echo "安装完成！可以通过以下命令控制代理："
 echo "- 启动代理环境: clashon"
