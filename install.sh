@@ -224,10 +224,10 @@ fi
 echo "检查 WebUI 文件..."
 if ! is_valid_file "$DistFile2"; then
     log_warn "本地 WebUI 文件不存在或为占位文件，尝试从 GitHub 下载..."
-    webui_url="${METACUBEXD_DOWNLOAD_URL:-https://github.com/MetaCubeX/metacubexd/releases/download/${WEBUI_VERSION:-v1.19.12}/compressed-dist.tgz}"
+    webui_url="https://github.com/MetaCubeX/metacubexd/releases/latest/download/compressed-dist.tgz"
     mkdir -p binaries
     DistFile2="binaries/metacubexd.tgz"
-    download_file "$webui_url" "$DistFile2" "WebUI 前端"
+    download_file "$webui_url" "$DistFile2" "WebUI 前端" || log_warn "WebUI 下载失败，将跳过前端安装"
 fi
 
 # 解压文件
