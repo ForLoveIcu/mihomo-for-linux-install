@@ -66,7 +66,7 @@ find_file() {
 
     # 如果在搜索路径中找不到，返回原始文件名（可能在当前目录）
     echo "$filename"
-    return 1
+    return 0
 }
 
 # 设置分发文件变量
