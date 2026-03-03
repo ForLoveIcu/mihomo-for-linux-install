@@ -52,6 +52,69 @@ detect_arch_file() {
     esac
 }
 
+# 检查文件是否为有效的二进制文件（非占位文件）
+is_valid_file() {
+    local filepath=$1
+    local min_size=${MIN_FILE_SIZE:-1000}
+    if [ ! -f "$filepath" ]; then
+        return 1
+    fi
+    local filesize=$(stat -c%s "$filepath" 2>/dev/null || stat -f%z "$filepath" 2>/dev/null || echo 0)
+    if [ "$filesize" -lt "$min_size" ]; then
+        return 1
+    fi
+    return 0
+}
+
+# 从 GitHub 下载文件（支持镜像加速）
+download_file() {
+    local url=$1
+    local output=$2
+    local description=$3
+
+    log_info "正在下载 ${description:-$url}..."
+
+    # 尝试镜像列表
+    local mirror_urls=()
+    if [ ${#MIRRORS[@]} -gt 0 ]; then
+        for mirror in "${MIRRORS[@]}"; do
+            if [ -n "$mirror" ]; then
+                mirror_urls+=("${mirror}${url}")
+            fi
+        done
+    fi
+    # 原始地址作为最后备选
+    mirror_urls+=("$url")
+
+    for try_url in "${mirror_urls[@]}"; do
+        log_info "尝试下载: $try_url"
+        if curl -fSL --connect-timeout "${CONNECT_TIMEOUT:-8}" --max-time "${DOWNLOAD_TIMEOUT:-120}" -o "$output" "$try_url" 2>/dev/null; then
+            if is_valid_file "$output"; then
+                log_success "下载成功: $output"
+                return 0
+            else
+                log_warn "下载的文件无效，尝试下一个镜像..."
+                rm -f "$output"
+            fi
+        fi
+    done
+
+    # 也尝试 wget
+    log_info "curl 下载失败，尝试 wget..."
+    if command -v wget &>/dev/null; then
+        if wget -q --timeout="${DOWNLOAD_TIMEOUT:-120}" -O "$output" "$url" 2>/dev/null; then
+            if is_valid_file "$output"; then
+                log_success "wget 下载成功: $output"
+                return 0
+            fi
+            rm -f "$output"
+        fi
+    fi
+
+    log_error "下载失败: $description"
+    return 1
+}
+
 # 查找文件（支持多个可能的路径）
 find_file() {
     local filename=$1
@@ -139,20 +202,52 @@ else
     echo "未发现运行中的 mihomo 进程"
 fi
 
-# 解压文件
-echo "解压文件 $DistFile1 和 $DistFile2..."
-if [ -f "$DistFile1" ]; then
-    gunzip -c "$DistFile1" > "$MihomoDir/mihomo"
-    chmod +x "$MihomoDir/mihomo"
-else
-    echo "找不到文件 $DistFile1，跳过解压"
+# 检查并下载 mihomo 核心文件
+echo "检查 mihomo 核心文件..."
+if ! is_valid_file "$DistFile1"; then
+    log_warn "本地 mihomo 文件不存在或为占位文件，尝试从 GitHub 下载..."
+    local_arch=$(uname -m)
+    case $local_arch in
+        x86_64)  download_name="mihomo-linux-amd64-compatible-${MIHOMO_VERSION:-v1.19.12}.gz" ;;
+        aarch64) download_name="mihomo-linux-arm64-${MIHOMO_VERSION:-v1.19.12}.gz" ;;
+        arm64)   download_name="mihomo-linux-arm64-${MIHOMO_VERSION:-v1.19.12}.gz" ;;
+        armv7l)  download_name="mihomo-linux-armv7-${MIHOMO_VERSION:-v1.19.12}.gz" ;;
+        *)       log_error "不支持的架构: $local_arch"; exit 1 ;;
+    esac
+    download_url="${MIHOMO_DOWNLOAD_URL:-https://github.com/MetaCubeX/mihomo/releases/download/${MIHOMO_VERSION:-v1.19.12}}/$download_name"
+    mkdir -p binaries
+    DistFile1="binaries/$download_name"
+    download_file "$download_url" "$DistFile1" "mihomo 核心"
 fi
 
-if [ -f "$DistFile2" ]; then
-    mkdir -p "$MihomoDir/ui"
-    tar -xvzf "$DistFile2" -C "$MihomoDir/ui"
+# 检查并下载 WebUI 文件
+echo "检查 WebUI 文件..."
+if ! is_valid_file "$DistFile2"; then
+    log_warn "本地 WebUI 文件不存在或为占位文件，尝试从 GitHub 下载..."
+    webui_url="${METACUBEXD_DOWNLOAD_URL:-https://github.com/MetaCubeX/metacubexd/releases/download/${WEBUI_VERSION:-v1.19.12}/compressed-dist.tgz}"
+    mkdir -p binaries
+    DistFile2="binaries/metacubexd.tgz"
+    download_file "$webui_url" "$DistFile2" "WebUI 前端"
+fi
+
+# 解压文件
+echo "解压文件 $DistFile1 和 $DistFile2..."
+if is_valid_file "$DistFile1"; then
+    gunzip -c "$DistFile1" > "$MihomoDir/mihomo"
+    chmod +x "$MihomoDir/mihomo"
+    log_success "mihomo 核心解压完成"
 else
-    echo "找不到文件 $DistFile2，跳过解压"
+    log_error "找不到有效的 mihomo 文件: $DistFile1"
+    log_error "请手动下载 mihomo 文件到 binaries/ 目录"
+    exit 1
+fi
+
+if is_valid_file "$DistFile2"; then
+    mkdir -p "$MihomoDir/ui"
+    tar -xzf "$DistFile2" -C "$MihomoDir/ui"
+    log_success "WebUI 解压完成"
+else
+    log_warn "找不到有效的 WebUI 文件: $DistFile2，跳过解压"
 fi
 
 # 复制 config.yaml 文件到 /etc/mihomo
